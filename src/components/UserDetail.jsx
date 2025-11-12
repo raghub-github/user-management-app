@@ -25,11 +25,13 @@ const UserDetail = () => {
       setLoading(true);
       setError(null);
       
-      // Check localStorage first for locally saved users
+      const userId = parseInt(id);
+      
+      // Check localStorage first for all users
       const savedUsers = localStorage.getItem('users');
       if (savedUsers) {
         const users = JSON.parse(savedUsers);
-        const localUser = users.find(u => u.id === parseInt(id));
+        const localUser = users.find(u => u.id === userId);
         if (localUser) {
           setUser(localUser);
           setLoading(false);
@@ -37,7 +39,14 @@ const UserDetail = () => {
         }
       }
       
-      // If not found locally, fetch from API
+      // If user ID > 10, it's a locally created user that doesn't exist in API
+      if (userId > 10) {
+        setError('User not found. This user may have been deleted.');
+        setLoading(false);
+        return;
+      }
+      
+      // If not found locally and ID <= 10, fetch from API
       const data = await fetchUser(id);
       setUser(data);
     } catch (err) {

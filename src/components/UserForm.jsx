@@ -118,8 +118,18 @@ const UserForm = ({ user, onSave, onCancel }) => {
     try {
       let result;
       if (user) {
-        // Update existing user
-        result = await updateUser(user.id, formData);
+        // Check if this is a locally created user (ID > 10)
+        // Locally created users don't exist in the API, so skip API call
+        if (user.id > 10) {
+          // For locally created users, just return the updated data
+          result = {
+            ...formData,
+            id: user.id,
+          };
+        } else {
+          // Update existing user from API
+          result = await updateUser(user.id, formData);
+        }
       } else {
         // Create new user
         result = await createUser(formData);
