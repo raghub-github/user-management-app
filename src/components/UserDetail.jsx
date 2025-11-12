@@ -1,7 +1,3 @@
-/**
- * UserDetail Component
- * Displays detailed information about a single user
- */
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { fetchUser } from '../services/api';
@@ -21,12 +17,27 @@ const UserDetail = () => {
   }, [id]);
 
   /**
-   * Load user details from the API
+   * Load user details from localStorage first, then API
+   * This ensures locally edited users show their updated data
    */
   const loadUser = async () => {
     try {
       setLoading(true);
       setError(null);
+      
+      // Check localStorage first for locally saved users
+      const savedUsers = localStorage.getItem('users');
+      if (savedUsers) {
+        const users = JSON.parse(savedUsers);
+        const localUser = users.find(u => u.id === parseInt(id));
+        if (localUser) {
+          setUser(localUser);
+          setLoading(false);
+          return;
+        }
+      }
+      
+      // If not found locally, fetch from API
       const data = await fetchUser(id);
       setUser(data);
     } catch (err) {

@@ -1,7 +1,3 @@
-/**
- * UserForm Component
- * Handles both creating and updating users
- */
 import { useState, useEffect } from 'react';
 import { createUser, updateUser } from '../services/api';
 import './UserForm.css';
@@ -302,4 +298,3 @@ const UserForm = ({ user, onSave, onCancel }) => {
 };
 
 export default UserForm;
-

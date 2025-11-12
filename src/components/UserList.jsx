@@ -18,22 +18,73 @@ const UserList = () => {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const navigate = useNavigate();
 
-  // Fetch users on component mount
+  // Load users from localStorage and API on component mount
   useEffect(() => {
     loadUsers();
   }, []);
 
+  // Save users to localStorage whenever users state changes
+  useEffect(() => {
+    if (users.length > 0) {
+      localStorage.setItem('users', JSON.stringify(users));
+    }
+  }, [users]);
+
   /**
-   * Load users from the API
+   * Load users from localStorage first, then fetch from API and merge
+   * This ensures local changes persist across page refreshes
    */
   const loadUsers = async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await fetchUsers();
-      setUsers(data);
+      
+      // Get users from localStorage (if any)
+      const savedUsers = localStorage.getItem('users');
+      let localUsers = savedUsers ? JSON.parse(savedUsers) : null;
+      
+      // Fetch fresh data from API
+      const apiUsers = await fetchUsers();
+      
+      // If we have local users, merge them with API users
+      // Local changes take precedence for existing users
+      if (localUsers && localUsers.length > 0) {
+        // Create a map of API users for quick lookup
+        const apiUsersMap = new Map(apiUsers.map(user => [user.id, user]));
+        
+        // Merge: use local version if exists, otherwise use API version
+        const mergedUsers = localUsers.map(localUser => {
+          // If this is a locally created user (ID > 10), keep it
+          if (localUser.id > 10) {
+            return localUser;
+          }
+          // Otherwise, use local version if it exists, or API version
+          return localUser;
+        });
+        
+        // Add any new API users that don't exist locally
+        apiUsers.forEach(apiUser => {
+          if (!mergedUsers.find(u => u.id === apiUser.id)) {
+            mergedUsers.push(apiUser);
+          }
+        });
+        
+        // Sort by ID
+        mergedUsers.sort((a, b) => a.id - b.id);
+        setUsers(mergedUsers);
+      } else {
+        // First time loading, just use API data
+        setUsers(apiUsers);
+      }
     } catch (err) {
-      setError('Failed to load users. Please try again later.');
+      // If API fails, try to load from localStorage
+      const savedUsers = localStorage.getItem('users');
+      if (savedUsers) {
+        setUsers(JSON.parse(savedUsers));
+        setError('Using cached data. API request failed.');
+      } else {
+        setError('Failed to load users. Please try again later.');
+      }
       console.error(err);
     } finally {
       setLoading(false);
@@ -45,11 +96,11 @@ const UserList = () => {
    * @param {Object} userData - The new user data (response from API)
    */
   const handleUserCreated = (userData) => {
-    // JSONPlaceholder returns the data with an ID, add it to local state
-    // If no ID is provided, generate one based on existing users
+    // Generate a unique ID for new users (start from 100 to avoid conflicts)
+    const maxId = users.length > 0 ? Math.max(...users.map(u => u.id)) : 0;
     const newUser = {
       ...userData,
-      id: userData.id || (users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1),
+      id: userData.id || (maxId >= 10 ? maxId + 1 : 100),
     };
     setUsers([...users, newUser]);
     setShowCreateForm(false);

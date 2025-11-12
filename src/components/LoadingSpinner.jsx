@@ -1,7 +1,3 @@
-/**
- * LoadingSpinner Component
- * Displays a loading spinner while data is being fetched
- */
 import './LoadingSpinner.css';
 
 const LoadingSpinner = () => {
